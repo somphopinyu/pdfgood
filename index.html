@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFgood - รวมไฟล์ PDF ฟรี 100% ปลอดภัยบนเบราว์เซอร์</title>
-  <meta name="description" content="รวมไฟล์ PDF ไว้ใช้งานเอง 100% Client-side Processing ประมวลผลในเครื่อง ปลอดภัย ไม่มีโฆษณา รองรับ Offline PWA">
+  <title>PDFgood - รวมไฟล์ PDF & แปลงรูปภาพเป็น PDF ฟรี 100% ปลอดภัยบนเบราว์เซอร์</title>
+  <meta name="description" content="รวมไฟล์ PDF และแปลงรูปภาพเป็น PDF ไว้ใช้งานเอง 100% Client-side Processing ประมวลผลในเครื่อง ปลอดภัย ไม่มีโฆษณา รองรับ Offline PWA">
   
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -31,7 +31,7 @@
             PDFgood
             <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Client-Side</span>
           </h1>
-          <p class="text-xs text-slate-500 hidden sm:block">รวมไฟล์ PDF ฟรี ปลอดภัย ไม่ส่งไฟล์ออกนอกเครื่อง</p>
+          <p class="text-xs text-slate-500 hidden sm:block">รวมไฟล์ PDF & แปลงรูปภาพเป็น PDF ฟรี ปลอดภัย ไม่ส่งไฟล์ออกนอกเครื่อง</p>
         </div>
       </a>
 
@@ -76,16 +76,16 @@
     <!-- Hero / Headline Section -->
     <section class="text-center space-y-3">
       <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-        รวมไฟล์ PDF ง่ายๆ <span class="text-blue-600">ในเครื่องของคุณ</span>
+        รวมไฟล์ PDF & <span class="text-blue-600">แปลงรูปภาพเป็น PDF</span>
       </h2>
       <p class="text-slate-600 text-sm sm:text-base max-w-xl mx-auto">
-        ลากไฟล์มาวาง จัดเรียงลำดับ แล้วคลิก "รวมไฟล์" ข้อมูลทั้งหมดถูกประมวลผลผ่านเบราว์เซอร์ 100% รวดเร็วและปลอดภัยสูงสุด
+        ลากไฟล์ PDF หรือรูปภาพ (JPG, PNG, WebP) มาวาง จัดเรียงลำดับได้ตามต้องการ แล้วคลิก "แปลงและรวมไฟล์" ปลอดภัย ประมวลผลบนเบราว์เซอร์ 100%
       </p>
     </section>
 
     <!-- Upload & Dropzone Area -->
     <section>
-      <input type="file" id="fileInput" accept=".pdf,application/pdf" multiple class="hidden">
+      <input type="file" id="fileInput" accept=".pdf,image/*,.jpg,.jpeg,.png,.webp,.bmp,.gif" multiple class="hidden">
       
       <div id="dropzone" class="dropzone bg-white rounded-2xl p-8 sm:p-12 text-center shadow-sm hover:shadow-md cursor-pointer relative overflow-hidden group">
         <div class="space-y-4 max-w-md mx-auto pointer-events-none">
@@ -99,10 +99,10 @@
 
           <div>
             <p class="text-base sm:text-lg font-bold text-slate-800">
-              ลากไฟล์ PDF มาวางที่นี่
+              ลากไฟล์ PDF หรือ รูปภาพมาวางที่นี่
             </p>
             <p class="text-xs sm:text-sm text-slate-500 mt-1">
-              หรือคลิกเพื่อเลือกไฟล์ PDF หลายๆ ไฟล์พร้อมกัน
+              รองรับทั้งไฟล์ PDF และ รูปภาพ (JPG, PNG, WebP, BMP, GIF)
             </p>
           </div>
 
@@ -111,7 +111,7 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
-              เลือกไฟล์ PDF
+              เลือกไฟล์ PDF หรือ รูปภาพ
             </button>
           </div>
 
@@ -127,7 +127,7 @@
         <svg class="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <p class="text-xs sm:text-sm font-medium">ยังไม่มีไฟล์ PDF ในรายการ กรุณาอัปโหลดไฟล์ด้านบน</p>
+        <p class="text-xs sm:text-sm font-medium">ยังไม่มีไฟล์ในรายการ กรุณาอัปโหลดไฟล์ PDF หรือรูปภาพด้านบน</p>
       </div>
 
       <!-- File List Container -->
@@ -136,7 +136,7 @@
         <!-- List Toolbar -->
         <div class="flex items-center justify-between flex-wrap gap-3 bg-slate-100/80 p-3 sm:p-4 rounded-2xl border border-slate-200">
           <div class="flex items-center gap-2 text-sm font-bold text-slate-800">
-            <span>รายการไฟล์ PDF</span>
+            <span>รายการไฟล์</span>
             <span id="totalFilesSummary" class="px-2.5 py-0.5 rounded-full bg-blue-600 text-white text-xs font-semibold">0 ไฟล์</span>
             <span id="totalPagesSummary" class="text-xs font-medium text-slate-500">(รวม 0 หน้า)</span>
           </div>
@@ -163,7 +163,7 @@
           <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          สามารถคลิกลากสลับลำดับไฟล์ได้ตามต้องการ (ไฟล์บนสุดจะเป็นหน้าแรก)
+          สามารถลากสลับลำดับระหว่างไฟล์ PDF และ รูปภาพได้อย่างอิสระ (ไฟล์บนสุดจะเป็นหน้าแรก)
         </p>
 
         <!-- Dynamic Sortable File List -->
@@ -171,13 +171,13 @@
           <!-- Dynamically populated via app.js -->
         </ul>
 
-        <!-- Action Button (Merge PDF) -->
+        <!-- Action Button (Merge PDF & Images) -->
         <div class="pt-4 text-center">
           <button type="button" id="btnMerge" disabled class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-base shadow-lg shadow-blue-500/25 transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2 mx-auto">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
             </svg>
-            รวมไฟล์ PDF (Merge PDF)
+            แปลงและรวมไฟล์ (Merge PDF & Images)
           </button>
         </div>
 
@@ -189,6 +189,18 @@
     <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
       
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
+        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">แปลงรูปภาพเป็น PDF</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          รองรับรูปภาพ JPG, PNG, WebP, BMP แปลงและรวมเข้ากับไฟล์ PDF ในลำดับเดียวกันได้ง่ายดาย
+        </p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
         <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -196,19 +208,7 @@
         </div>
         <h3 class="text-sm font-bold text-slate-800">ปลอดภัย 100% (Client-Side)</h3>
         <p class="text-xs text-slate-500 leading-relaxed">
-          ไฟล์ PDF ไม่ถูกส่งออกนอกเครื่อง ข้อมูลสำคัญ เอกสารส่วนตัว หรือเอกสารราชการปลอดภัยสูงสุด
-        </p>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-2">
-        <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-        </div>
-        <h3 class="text-sm font-bold text-slate-800">ทำงานรวดเร็ว ไร้โฆษณา</h3>
-        <p class="text-xs text-slate-500 leading-relaxed">
-          ประมวลผลด้วยทรัพยากรเครื่องของคุณเอง ประมวลผลได้รวดเร็วทันทีโดยไม่มีโฆษณาคั่น
+          รูปภาพและเอกสารทั้งหมดถูกประมวลผลในเครื่องของคุณ ข้อมูลส่วนตัวไม่ถูกส่งไปเซิร์ฟเวอร์
         </p>
       </div>
 
@@ -220,7 +220,7 @@
         </div>
         <h3 class="text-sm font-bold text-slate-800">รองรับ Offline Mode (PWA)</h3>
         <p class="text-xs text-slate-500 leading-relaxed">
-          เข้าถึงหน้าเว็บและใช้งานรวมไฟล์ได้ทุกที่แม้ไม่มีอินเทอร์เน็ต สามารถติดตั้งแอปบนอุปกรณ์ได้
+          สามารถเปิดใช้งานรวมไฟล์และแปลงรูปภาพเป็น PDF ได้ทุกที่โดยไม่ต้องต่ออินเทอร์เน็ต
         </p>
       </div>
 
@@ -230,7 +230,7 @@
 
   <!-- Progress Overlay Modal -->
   <div id="progressOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center space-y-4 animate-fade-in">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center space-y-4">
       
       <div class="w-14 h-14 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
         <svg class="animate-spin w-8 h-8" fill="none" viewBox="0 0 24 24">
@@ -240,7 +240,7 @@
       </div>
 
       <div>
-        <h3 class="text-lg font-bold text-slate-900">กำลังรวมไฟล์ PDF...</h3>
+        <h3 class="text-lg font-bold text-slate-900">กำลังแปลงและรวมไฟล์...</h3>
         <p id="progressStatus" class="text-xs text-slate-500 mt-1 truncate">กำลังประมวลผลหน้าเอกสาร</p>
       </div>
 
@@ -262,7 +262,7 @@
   <footer class="bg-white border-t border-slate-200 py-6 mt-12">
     <div class="max-w-4xl mx-auto px-4 text-center text-xs text-slate-500 space-y-2">
       <p class="font-medium">
-        PDFgood &copy; 2026 — 100% Client-Side PDF Merger Web App
+        PDFgood &copy; 2026 — 100% Client-Side PDF & Image Merger Web App
       </p>
       <p class="text-slate-400">
         Hosted on GitHub Pages • Powered by pdf-lib.js & SortableJS

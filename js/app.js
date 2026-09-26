@@ -1,11 +1,11 @@
 /**
- * PDFgood - Application Logic & UI Manager
+ * PDFgood - Application Logic & UI Manager (PDF & Image Merger)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
-    files: [], // Array of { id, file, name, size, pageCount, isLoadingCount }
+    files: [], // Array of { id, file, type: 'pdf'|'image', name, size, pageCount, previewUrl, dimensions, isLoadingCount }
     isProcessing: false
   };
 
@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastContainer = document.getElementById('toastContainer');
   const pwaInstallBanner = document.getElementById('pwaInstallBanner');
   const btnInstallPwa = document.getElementById('btnInstallPwa');
+  const btnInstallPwaBanner = document.getElementById('btnInstallPwaBanner');
 
   let sortableInstance = null;
   let deferredPwaPrompt = null;
@@ -52,14 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Event Listeners ---
 
-  // Select Files Buttons
   if (btnSelectFiles) btnSelectFiles.addEventListener('click', () => fileInput.click());
   if (btnAddMore) btnAddMore.addEventListener('click', () => fileInput.click());
   
   fileInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFilesAdded(Array.from(e.target.files));
-      fileInput.value = ''; // Reset input so same file can be chosen again
+      fileInput.value = '';
     }
   });
 
@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnClearAll.addEventListener('click', () => {
       if (state.files.length === 0) return;
       if (confirm('คุณต้องการล้างรายการไฟล์ทั้งหมดใช่หรือไม่?')) {
+        state.files.forEach(item => {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        });
         state.files = [];
         renderFileList();
         showToast('ล้างรายการไฟล์เรียบร้อยแล้ว', 'info');
@@ -109,41 +112,51 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Core Application Functions ---
 
   /**
-   * Process newly added File objects
+   * Process newly added File objects (PDF and Images)
    */
   async function handleFilesAdded(incomingFiles) {
-    const pdfFiles = incomingFiles.filter(file => {
-      const isPdfType = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-      if (!isPdfType) {
-        showToast(`ข้ามไฟล์ "${file.name}" เนื่องจากไม่ใช่ไฟล์ PDF`, 'warning');
+    const validFiles = incomingFiles.filter(file => {
+      const isPdf = window.pdfMergerEngine.isPdfFile(file);
+      const isImg = window.pdfMergerEngine.isImageFile(file);
+      if (!isPdf && !isImg) {
+        showToast(`ข้ามไฟล์ "${file.name}" เนื่องจากไม่รองรับ (รองรับเฉพาะ PDF และ รูปภาพ)`, 'warning');
       }
-      return isPdfType;
+      return isPdf || isImg;
     });
 
-    if (pdfFiles.length === 0) return;
+    if (validFiles.length === 0) return;
 
-    // Create item entries
-    const newItems = pdfFiles.map(file => ({
-      id: 'pdf_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-      file: file,
-      name: file.name,
-      size: formatFileSize(file.size),
-      pageCount: null,
-      isLoadingCount: true
-    }));
+    const newItems = validFiles.map(file => {
+      const isImg = window.pdfMergerEngine.isImageFile(file);
+      return {
+        id: 'file_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        file: file,
+        type: isImg ? 'image' : 'pdf',
+        name: file.name,
+        size: formatFileSize(file.size),
+        pageCount: isImg ? 1 : null,
+        previewUrl: isImg ? URL.createObjectURL(file) : null,
+        dimensions: null,
+        isLoadingCount: true
+      };
+    });
 
     state.files.push(...newItems);
     renderFileList();
 
-    showToast(`เพิ่มไฟล์ PDF จำนวน ${newItems.length} ไฟล์แล้ว`, 'success');
+    showToast(`เพิ่มไฟล์จำนวน ${newItems.length} ไฟล์แล้ว`, 'success');
 
-    // Asynchronously fetch page counts for new files
+    // Asynchronously fetch file info / page count / dimension info
     for (const item of newItems) {
       try {
-        const info = await window.pdfMergerEngine.getPdfInfo(item.file);
+        const info = await window.pdfMergerEngine.getFileInfo(item.file);
         item.pageCount = info.pageCount;
+        if (info.type === 'image') {
+          if (info.previewUrl && !item.previewUrl) item.previewUrl = info.previewUrl;
+          if (info.dimensions) item.dimensions = info.dimensions;
+        }
       } catch (err) {
-        item.pageCount = 0;
+        if (item.type === 'pdf') item.pageCount = 0;
       } finally {
         item.isLoadingCount = false;
         updateItemUI(item.id);
@@ -187,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = 'file-item bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-3 group';
       li.dataset.id = item.id;
 
+      const isImg = item.type === 'image';
+
       li.innerHTML = `
         <!-- Drag Handle & Index -->
         <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
@@ -198,21 +213,23 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="text-xs font-bold text-slate-400 w-5 text-center">${index + 1}</span>
         </div>
 
-        <!-- File Info -->
+        <!-- File Info & Thumbnail -->
         <div class="flex items-center gap-3 min-w-0 flex-1">
-          <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-            </svg>
-          </div>
+          ${renderItemIconOrThumbnail(item)}
           <div class="min-w-0 flex-1">
-            <h4 class="text-sm font-semibold text-slate-800 truncate" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</h4>
-            <div class="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <h4 class="text-sm font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-[320px]" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</h4>
+              <span class="px-1.5 py-0.2 text-[10px] font-bold rounded ${isImg ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'}">
+                ${isImg ? 'IMAGE' : 'PDF'}
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
               <span>${item.size}</span>
               <span class="text-slate-300">•</span>
-              <span id="pageBadge_${item.id}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.isLoadingCount ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-700'}">
+              <span id="pageBadge_${item.id}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.isLoadingCount ? 'bg-slate-100 text-slate-500' : (isImg ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700')}">
                 ${renderPageBadgeContent(item)}
               </span>
+              ${item.dimensions ? `<span class="text-slate-400 text-[11px]">(${item.dimensions.width}x${item.dimensions.height} px)</span>` : ''}
             </div>
           </div>
         </div>
@@ -237,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Event listeners for card buttons
       li.querySelector('.btn-move-up').addEventListener('click', () => moveItem(index, -1));
       li.querySelector('.btn-move-down').addEventListener('click', () => moveItem(index, 1));
       li.querySelector('.btn-remove').addEventListener('click', () => removeItem(item.id));
@@ -248,9 +264,30 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSummary();
   }
 
+  function renderItemIconOrThumbnail(item) {
+    if (item.type === 'image' && item.previewUrl) {
+      return `
+        <div class="w-11 h-11 rounded-lg overflow-hidden border border-slate-200 bg-slate-100 flex-shrink-0 relative group">
+          <img src="${item.previewUrl}" alt="preview" class="w-full h-full object-cover">
+        </div>
+      `;
+    }
+
+    return `
+      <div class="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        </svg>
+      </div>
+    `;
+  }
+
   function renderPageBadgeContent(item) {
     if (item.isLoadingCount) {
-      return `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-slate-500 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> อ่านหน้า...`;
+      return `<svg class="animate-spin -ml-0.5 mr-1 h-3 w-3 text-slate-500 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> อ่านข้อมูล...`;
+    }
+    if (item.type === 'image') {
+      return `ภาพ 1 หน้า`;
     }
     if (item.pageCount > 0) {
       return `${item.pageCount} หน้า`;
@@ -264,7 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const badge = document.getElementById(`pageBadge_${id}`);
     if (badge) {
       badge.innerHTML = renderPageBadgeContent(item);
-      badge.className = `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${item.isLoadingCount ? 'bg-slate-100 text-slate-500' : 'bg-blue-50 text-blue-700'}`;
     }
   }
 
@@ -278,6 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function removeItem(id) {
+    const target = state.files.find(f => f.id === id);
+    if (target && target.previewUrl) URL.revokeObjectURL(target.previewUrl);
     state.files = state.files.filter(f => f.id !== id);
     renderFileList();
     showToast('ลบไฟล์ออกจากรายการแล้ว', 'info');
@@ -285,28 +323,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateSummary() {
     const count = state.files.length;
+    let pdfCount = 0;
+    let imgCount = 0;
     let totalPages = 0;
     let hasLoading = false;
 
     state.files.forEach(f => {
       if (f.isLoadingCount) hasLoading = true;
-      if (f.pageCount) totalPages += f.pageCount;
+      if (f.type === 'image') {
+        imgCount++;
+        totalPages += 1;
+      } else {
+        pdfCount++;
+        if (f.pageCount) totalPages += f.pageCount;
+      }
     });
 
-    if (totalFilesSummary) totalFilesSummary.textContent = `${count} ไฟล์`;
-    if (totalPagesSummary) {
-      totalPagesSummary.textContent = hasLoading ? `(กำลังนับหน้า...)` : `(รวม ${totalPages} หน้า)`;
+    if (totalFilesSummary) {
+      let detailParts = [];
+      if (pdfCount > 0) detailParts.push(`${pdfCount} PDF`);
+      if (imgCount > 0) detailParts.push(`${imgCount} ภาพ`);
+      const detailStr = detailParts.length > 0 ? ` (${detailParts.join(', ')})` : '';
+      totalFilesSummary.textContent = `${count} ไฟล์${detailStr}`;
     }
 
-    // Enable Merge button if we have at least 1 file (ideally >= 2 files)
+    if (totalPagesSummary) {
+      totalPagesSummary.textContent = hasLoading ? `(กำลังคำนวณหน้า...)` : `(รวม ${totalPages} หน้า)`;
+    }
+
     if (btnMerge) {
-      if (count >= 2) {
+      if (count >= 1) {
         btnMerge.disabled = false;
-        btnMerge.classList.remove('opacity-50', 'cursor-not-allowed', 'pulse-primary');
-        btnMerge.classList.add('pulse-primary');
-      } else if (count === 1) {
-        btnMerge.disabled = false;
-        btnMerge.classList.remove('opacity-50', 'cursor-not-allowed', 'pulse-primary');
+        btnMerge.classList.remove('opacity-50', 'cursor-not-allowed');
+        if (count >= 2) btnMerge.classList.add('pulse-primary');
       } else {
         btnMerge.disabled = true;
         btnMerge.classList.add('opacity-50', 'cursor-not-allowed');
@@ -320,17 +369,15 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   async function executeMerge() {
     if (state.files.length === 0) {
-      showToast('กรุณาอัปโหลดไฟล์ PDF ก่อนทำการรวมไฟล์', 'warning');
+      showToast('กรุณาอัปโหลดไฟล์ PDF หรือรูปภาพก่อนดำเนินการ', 'warning');
       return;
     }
 
     state.isProcessing = true;
-    showProgressOverlay(0, 'เริ่มกระบวนการรวมไฟล์...');
+    showProgressOverlay(0, 'เริ่มแปลงและรวมไฟล์...');
 
     try {
-      const filesToMerge = state.files.map(f => f.file);
-
-      const result = await window.pdfMergerEngine.mergePDFs(filesToMerge, (percent, statusText) => {
+      const result = await window.pdfMergerEngine.mergePDFs(state.files, (percent, statusText) => {
         updateProgress(percent, statusText);
       });
 
@@ -348,12 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 10000);
 
       hideProgressOverlay();
-      showToast('รวมไฟล์ PDF และดาวน์โหลดเสร็จสิ้น!', 'success');
+      showToast('แปลงและรวมไฟล์ PDF เรียบร้อยแล้ว!', 'success');
 
     } catch (error) {
       console.error('Merge Error:', error);
       hideProgressOverlay();
-      showToast(error.message || 'เกิดข้อผิดพลาดในการรวมไฟล์ PDF', 'error');
+      showToast(error.message || 'เกิดข้อผิดพลาดในการรวมไฟล์', 'error');
     } finally {
       state.isProcessing = false;
     }
@@ -394,9 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     toast.className = `px-4 py-3 rounded-xl shadow-lg font-medium text-sm flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 ${bgColors[type] || bgColors.info}`;
-    toast.innerHTML = `
-      <span>${escapeHtml(message)}</span>
-    `;
+    toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
 
     toastContainer.appendChild(toast);
 
@@ -429,27 +474,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('[SW] Registered successfully scope:', reg.scope))
-        .catch(err => console.warn('[SW] Registration failed:', err));
+        .then(reg => console.log('[SW] Registered scope:', reg.scope))
+        .catch(err => console.warn('[SW] Reg failed:', err));
     });
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPwaPrompt = e;
-    if (pwaInstallBanner) {
-      pwaInstallBanner.classList.remove('hidden');
-    }
+    if (pwaInstallBanner) pwaInstallBanner.classList.remove('hidden');
+    if (btnInstallPwa) btnInstallPwa.classList.remove('hidden');
   });
 
-  if (btnInstallPwa) {
-    btnInstallPwa.addEventListener('click', async () => {
-      if (!deferredPwaPrompt) return;
-      deferredPwaPrompt.prompt();
-      const { outcome } = await deferredPwaPrompt.userChoice;
-      console.log(`[PWA] Install prompt result: ${outcome}`);
-      deferredPwaPrompt = null;
-      if (pwaInstallBanner) pwaInstallBanner.classList.add('hidden');
-    });
-  }
+  const handleInstallClick = async () => {
+    if (!deferredPwaPrompt) return;
+    deferredPwaPrompt.prompt();
+    const { outcome } = await deferredPwaPrompt.userChoice;
+    console.log(`[PWA] Install prompt outcome: ${outcome}`);
+    deferredPwaPrompt = null;
+    if (pwaInstallBanner) pwaInstallBanner.classList.add('hidden');
+    if (btnInstallPwa) btnInstallPwa.classList.add('hidden');
+  };
+
+  if (btnInstallPwa) btnInstallPwa.addEventListener('click', handleInstallClick);
+  if (btnInstallPwaBanner) btnInstallPwaBanner.addEventListener('click', handleInstallClick);
 });
